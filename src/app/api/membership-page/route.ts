@@ -1,28 +1,28 @@
 import { NextResponse } from 'next/server';
-import fs from 'fs';
-import path from 'path';
-
-const dbPath = path.resolve(process.cwd(), 'db.json');
+import { prisma } from '@/lib/prisma';
 
 export async function GET() {
   try {
-    const dbData = JSON.parse(fs.readFileSync(dbPath, 'utf-8'));
-    return NextResponse.json(dbData.membershipPage);
+    const membershipPage = await prisma.membershipPage.findFirst({
+      where: { id: 1 },
+    });
+    return NextResponse.json(membershipPage);
   } catch (error) {
-    console.error('Error reading or parsing db.json:', error);
+    console.error('Error fetching membership page data:', error);
     return NextResponse.json({ error: 'Failed to fetch membership page data' }, { status: 500 });
   }
 }
 
-export async function POST(req: Request) {
+export async function PUT(req: Request) {
   try {
     const newData = await req.json();
-    const dbData = JSON.parse(fs.readFileSync(dbPath, 'utf-8'));
-    dbData.membershipPage = newData;
-    fs.writeFileSync(dbPath, JSON.stringify(dbData, null, 2));
+    await prisma.membershipPage.update({
+      where: { id: 1 },
+      data: newData,
+    });
     return NextResponse.json({ message: 'Membership page data updated successfully' });
   } catch (error) {
-    console.error('Error updating db.json:', error);
+    console.error('Error updating membership page data:', error);
     return NextResponse.json({ error: 'Failed to update membership page data' }, { status: 500 });
   }
 }

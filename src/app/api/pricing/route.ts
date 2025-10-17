@@ -1,24 +1,14 @@
 import { NextResponse } from 'next/server';
-import fs from 'fs/promises';
-import path from 'path';
-
-const dbPath = path.join(process.cwd(), 'db.json');
-
-async function readDb() {
-  const fileContents = await fs.readFile(dbPath, 'utf8');
-  return JSON.parse(fileContents);
-}
-
-async function writeDb(data: any) {
-  await fs.writeFile(dbPath, JSON.stringify(data, null, 2), 'utf8');
-}
+import { prisma } from '@/lib/prisma';
 
 export async function GET() {
   try {
-    const data = await readDb();
-    return NextResponse.json(data.pricing);
+    const pricing = await prisma.pricing.findMany({
+      include: { tiers: true },
+    });
+    return NextResponse.json(pricing);
   } catch (error) {
-    console.error('Error reading or parsing db.json:', error);
+    console.error('Error fetching pricing data:', error);
     return NextResponse.json({ message: 'Error fetching pricing data' }, { status: 500 });
   }
 }
@@ -26,33 +16,37 @@ export async function GET() {
 export async function POST(request: Request) {
   try {
     const { sectionId, newSectionTitle, tier } = await request.json();
-    const data = await readDb();
 
     if (!sectionId || !tier) {
-        return NextResponse.json({ message: 'Invalid request body' }, { status: 400 });
+      return NextResponse.json({ message: 'Invalid request body' }, { status: 400 });
     }
 
-    let section = data.pricing.find((s: any) => s.id === sectionId);
+    let pricingSection = await prisma.pricing.findUnique({
+      where: { db_id: sectionId },
+    });
 
-    if (section) {
-      // Add to existing section
-      section.tiers.push(tier);
-    } else {
-      // Create new section
+    if (!pricingSection) {
       if (!newSectionTitle) {
         return NextResponse.json({ message: 'newSectionTitle is required for a new section' }, { status: 400 });
       }
-      const newSection = {
-        id: sectionId,
-        title: newSectionTitle,
-        tiers: [tier]
-      };
-      data.pricing.push(newSection);
+      pricingSection = await prisma.pricing.create({
+        data: {
+          db_id: sectionId,
+          title: newSectionTitle,
+        },
+      });
     }
 
-    await writeDb(data);
+    const newTier = await prisma.pricingTier.create({
+      data: {
+        ...tier,
+        pricing: {
+          connect: { id: pricingSection.id },
+        },
+      },
+    });
 
-    return NextResponse.json(tier, { status: 201 });
+    return NextResponse.json(newTier, { status: 201 });
   } catch (error) {
     console.error('Error adding new pricing tier:', error);
     return NextResponse.json({ message: 'Error adding new pricing tier' }, { status: 500 });

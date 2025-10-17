@@ -1,31 +1,14 @@
 import { NextResponse } from 'next/server';
-import fs from 'fs/promises';
-import path from 'path';
-
-const dbPath = path.join(process.cwd(), 'db.json');
-
-async function readDb() {
-  try {
-    const fileContents = await fs.readFile(dbPath, 'utf8');
-    return JSON.parse(fileContents);
-  } catch (error) {
-    // If the file doesn't exist, return a default structure
-    if (error.code === 'ENOENT') {
-      return { schedule: [] };
-    }
-    throw error;
-  }
-}
-
-async function writeDb(data: any) {
-  await fs.writeFile(dbPath, JSON.stringify(data, null, 2), 'utf8');
-}
+import { prisma } from '@/lib/prisma';
 
 export async function GET(request: Request, { params }: { params: { id: string } }) {
   try {
+    // Force dynamic rendering
+    const _ = request.headers;
     const id = parseInt(params.id, 10);
-    const data = await readDb();
-    const scheduleItem = data.schedule.find((item: any) => item.id === id);
+    const scheduleItem = await prisma.schedule.findUnique({
+      where: { db_id: id },
+    });
 
     if (!scheduleItem) {
       return NextResponse.json({ message: 'Schedule item not found' }, { status: 404 });
@@ -40,20 +23,17 @@ export async function GET(request: Request, { params }: { params: { id: string }
 
 export async function PUT(request: Request, { params }: { params: { id: string } }) {
   try {
+    // Force dynamic rendering
+    const _ = request.headers;
     const id = parseInt(params.id, 10);
     const updatedItem = await request.json();
-    const data = await readDb();
 
-    const itemIndex = data.schedule.findIndex((item: any) => item.id === id);
+    const scheduleItem = await prisma.schedule.update({
+      where: { db_id: id },
+      data: updatedItem,
+    });
 
-    if (itemIndex === -1) {
-      return NextResponse.json({ message: 'Schedule item not found' }, { status: 404 });
-    }
-
-    data.schedule[itemIndex] = { ...data.schedule[itemIndex], ...updatedItem };
-    await writeDb(data);
-
-    return NextResponse.json(data.schedule[itemIndex]);
+    return NextResponse.json(scheduleItem);
   } catch (error) {
     console.error('Error updating schedule item:', error);
     return NextResponse.json({ message: 'Error updating schedule item' }, { status: 500 });
@@ -62,17 +42,12 @@ export async function PUT(request: Request, { params }: { params: { id: string }
 
 export async function DELETE(request: Request, { params }: { params: { id: string } }) {
   try {
+    // Force dynamic rendering
+    const _ = request.headers;
     const id = parseInt(params.id, 10);
-    const data = await readDb();
-    
-    const itemIndex = data.schedule.findIndex((item: any) => item.id === id);
-
-    if (itemIndex === -1) {
-      return NextResponse.json({ message: 'Schedule item not found' }, { status: 404 });
-    }
-
-    data.schedule.splice(itemIndex, 1);
-    await writeDb(data);
+    await prisma.schedule.delete({
+      where: { db_id: id },
+    });
 
     return new NextResponse(null, { status: 204 }); // No Content
   } catch (error) {

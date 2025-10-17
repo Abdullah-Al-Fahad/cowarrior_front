@@ -1,11 +1,13 @@
-import { promises as fs } from 'fs';
 import { NextResponse } from 'next/server';
-import path from 'path';
+import { prisma } from '@/lib/prisma';
 
 export async function GET() {
-  const filePath = path.join(process.cwd(), 'db.json');
-  const fileContents = await fs.readFile(filePath, 'utf8');
-  const data = JSON.parse(fileContents);
-  const disciplines = data.programs.map((program: any) => ({ id: program.id, name: program.name }));
+  const programs = await prisma.program.findMany({
+    select: {
+      db_id: true,
+      name: true,
+    },
+  });
+  const disciplines = programs.map((program) => ({ id: program.db_id, name: program.name }));
   return NextResponse.json(disciplines);
 }

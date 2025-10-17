@@ -1,32 +1,33 @@
-import { promises as fs } from 'fs';
-import { NextRequest, NextResponse } from 'next/server';
-import path from 'path';
-
-const DB_PATH = path.join(process.cwd(), 'db.json');
+import { NextResponse } from 'next/server';
+import { prisma } from '@/lib/prisma';
 
 export async function GET() {
   try {
-    const dbRaw = await fs.readFile(DB_PATH, 'utf-8');
-    const db = JSON.parse(dbRaw);
-    return NextResponse.json(db.settings.coachesSectionIntro);
+    const settings = await prisma.settings.findFirst({
+      where: { id: 1 },
+      select: {
+        coachesSectionIntro: true,
+      },
+    });
+    return NextResponse.json(settings?.coachesSectionIntro);
   } catch (error) {
-    console.error('Error reading db.json:', error);
-    return NextResponse.json({ message: 'Error reading Coaches Section Intro data' }, { status: 500 });
+    console.error('Error fetching coaches section intro from db:', error);
+    return NextResponse.json({ message: 'Error fetching Coaches Section Intro data' }, { status: 500 });
   }
 }
 
-export async function PUT(req: NextRequest) {
+export async function PUT(request: Request) {
   try {
-    const updatedCoachesSectionIntro = await req.json();
-    const dbRaw = await fs.readFile(DB_PATH, 'utf-8');
-    const db = JSON.parse(dbRaw);
-
-    db.settings.coachesSectionIntro = updatedCoachesSectionIntro;
-
-    await fs.writeFile(DB_PATH, JSON.stringify(db, null, 2), 'utf-8');
+    const updatedCoachesSectionIntro = await request.json();
+    await prisma.settings.update({
+      where: { id: 1 },
+      data: {
+        coachesSectionIntro: updatedCoachesSectionIntro,
+      },
+    });
     return NextResponse.json({ message: 'Coaches Section Intro data updated successfully', coachesSectionIntro: updatedCoachesSectionIntro });
   } catch (error) {
-    console.error('Error updating db.json:', error);
+    console.error('Error updating coaches section intro in db:', error);
     return NextResponse.json({ message: 'Error updating Coaches Section Intro data' }, { status: 500 });
   }
 }

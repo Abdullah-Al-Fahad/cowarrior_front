@@ -1,10 +1,9 @@
-import { promises as fs } from 'fs';
 import { NextResponse } from 'next/server';
-import path from 'path';
+import { prisma } from '@/lib/prisma';
 
 export async function GET() {
-  const filePath = path.join(process.cwd(), 'db.json');
-  const fileContents = await fs.readFile(filePath, 'utf8');
-  const data = JSON.parse(fileContents);
-  return NextResponse.json(data.whyChooseUs);
+  const whyChooseUs = await prisma.whyChooseUs.findFirst({
+    where: { id: 1 },
+  });
+  return NextResponse.json(whyChooseUs);
 }

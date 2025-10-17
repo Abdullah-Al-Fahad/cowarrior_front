@@ -1,0 +1,111 @@
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+model Program {
+  id                  String                @id @default(cuid())
+  db_id               String                @unique
+  name                String
+  subtitle            String
+  imageUrl            String
+  description         String
+  keyFocus            String[]
+  suitability         String
+  tagline             String
+  detailedDescription String
+  keyTechniques       Json[]
+  schedule            Json[]
+  gear                String[]
+  testimonial         Json
+}
+
+model Coach {
+  id             String   @id @default(cuid())
+  db_id          String   @unique
+  name           String
+  title          String
+  disciplines    String[]
+  specializations String[]
+  certifications String[]
+  imageUrl       String
+  videoUrl       String?
+  bio            String
+  philosophy     String
+  achievements   Json[]
+  gallery        String[]
+}
+
+model Schedule {
+  id         Int      @id @default(autoincrement())
+  db_id      Int      @unique
+  datetime   DateTime
+  discipline String
+  coachId    String
+  duration   String
+}
+
+model Pricing {
+  id     String        @id @default(cuid())
+  db_id  String        @unique
+  title  String
+  tiers  PricingTier[]
+}
+
+model PricingTier {
+  id          String   @id @default(cuid())
+  db_id       String   @unique
+  name        String
+  price       String
+  period      String
+  description String
+  features    String[]
+  isFeatured  Boolean?
+  pricing     Pricing? @relation(fields: [pricingId], references: [id])
+  pricingId   String?
+}
+
+model Settings {
+  id                    Int      @id @default(1)
+  heroTitle             String
+  heroSlides            Json[]
+  testimonials          Json[]
+  cta                   Json
+  programsSection       Json
+  imageSectionTraining  Json
+  gymFeaturesSection    Json
+  coreValuesSection     Json
+  teamPhotoSection      Json
+  coachesSectionIntro   Json
+  scheduleSection       Json
+  pricingSection        Json
+  newsletterSection     Json
+  coachesHeroSection    Json
+  scheduleHeroSection   Json
+  pricingHeroSection    Json
+}
+
+model WhyChooseUs {
+  id          Int    @id @default(1)
+  title       String
+  description String
+  features    Json[]
+}
+
+model DisciplinesHeroSection {
+  id                 Int    @id @default(1)
+  backgroundImageUrl String
+  mainHeadline       String
+  subHeadline        String
+}
+
+model MembershipPage {
+  id            Int    @id @default(1)
+  freeTrial     Json
+  importantNotes Json
+  inquiryForm   Json
+}
